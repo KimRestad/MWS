@@ -23,20 +23,23 @@
 
 #include <Windows.h>
 
-// Forward declarations.
-void Initialise();
+// Window forward declarations.
+void InitialiseWindow();
 void Run();
 LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARAM lParam);
 
+// Window global variables.
 HWND gWindowHandle = 0;
+int gWindowWidth = 800;
+int gWindowHeight = 600;
 
 void main()
 {
-	Initialise();
+	InitialiseWindow();
 	Run();
 }
 
-void Initialise()
+void InitialiseWindow()
 {
 	HINSTANCE applicationHandle = GetModuleHandle(NULL);
 	WNDCLASS windowClass;
@@ -45,10 +48,10 @@ void Initialise()
 	windowClass.cbClsExtra = 0;						// Extra memory slots. We don't need this.
 	windowClass.cbWndExtra = 0;						// Extra memory slots. We don't need this.
 	windowClass.hInstance = applicationHandle;		// Handle to the instance containing the class's window procedure.
-	windowClass.hIcon = LoadIcon(0, IDI_APPLICATION);		// Load the default window icon.
-	windowClass.hCursor = LoadCursor(0, IDC_ARROW);			// Load the default arrow curser.
-	windowClass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);	// Set the window background to white.
-	windowClass.lpszMenuName = 0;					// The window has no menu.
+	windowClass.hIcon = LoadIcon(0, IDI_APPLICATION);				// Load the default window icon.
+	windowClass.hCursor = LoadCursor(0, IDC_ARROW);					// Load the default arrow curser.
+	windowClass.hbrBackground = static_cast<HBRUSH>(GetStockObject(WHITE_BRUSH));	// Set the window background to white.
+	windowClass.lpszMenuName = NULL;				// The window has no menu.
 	windowClass.lpszClassName = L"WindowClass";		// Define a name for this window class.
 
 	RegisterClass(&windowClass);
@@ -59,12 +62,12 @@ void Initialise()
 		WS_OVERLAPPEDWINDOW,		// Window style: overlapped is a combination of several styles.
 		100,						// The window's x position in pixels from the main monitor's upper left corner.
 		100,						// The window's y position in pixels from the main monitor's upper left corner.
-		800,						// The window's width in pixels.
-		600,						// The window's height in pixels.
-		0,							// No parent - our window is the only one.
-		0,							// No menu so there is no handle to one.
+		gWindowWidth,				// The window's width in pixels.
+		gWindowHeight,				// The window's height in pixels.
+		NULL,						// No parent - our window is the only one.
+		NULL,						// No menu so there is no handle to one.
 		applicationHandle,			// Handle to the application owning the window.
-		0							// Info sent to the WM_CREATE message through its lParam member.
+		NULL						// Info sent to the WM_CREATE message through its lParam member.
 		);
 
 	// Window is not shown by default, so ShowWindow must be called for the window passing in how to show the window 
@@ -75,11 +78,11 @@ void Initialise()
 
 void Run()
 {
-	MSG windowMsg = {0};
+	MSG windowMsg = { 0 };
 
 	while (windowMsg.message != WM_QUIT)
 	{
-		if (PeekMessage(&windowMsg, 0, 0, 0, PM_REMOVE))
+		if (PeekMessage(&windowMsg, NULL, NULL, NULL, PM_REMOVE))
 		{
 			TranslateMessage(&windowMsg);	// Prepare the message.
 			DispatchMessage(&windowMsg);	// Send the message to the window procedure.
