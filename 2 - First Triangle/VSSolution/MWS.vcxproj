@@ -49,7 +49,7 @@
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)../Bin/$(PlatformTarget)-$(Configuration)</OutDir>
     <IntDir>$(SolutionDir)../Obj/$(PlatformTarget)-$(Configuration)/</IntDir>
-    <TargetName>MWS-Window</TargetName>
+    <TargetName>MWS-FirstTriangle</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
