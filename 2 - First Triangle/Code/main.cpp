@@ -46,14 +46,14 @@ void Render();
 HWND gWindowHandle = 0;
 int gWindowWidth = 800;
 int gWindowHeight = 600;
-ID3D11VertexShader* gVertexShader = nullptr;
-ID3D11PixelShader* gPixelShader = nullptr;
 
 // DirectX global variables.
 ID3D11Device* gDevice = nullptr;
 ID3D11DeviceContext* gContext = nullptr;
 IDXGISwapChain* gSwapChain = nullptr;
 ID3D11RenderTargetView* gRTV = nullptr;
+ID3D11VertexShader* gVertexShader = nullptr;
+ID3D11PixelShader* gPixelShader = nullptr;
 
 void main()
 {
