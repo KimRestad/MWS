@@ -75,3 +75,6 @@ UpgradeLog*.htm
 
 # Microsoft Fakes
 FakesAssemblies/
+
+# Utility files
+Tools/*
