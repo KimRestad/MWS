@@ -25,26 +25,27 @@
 #include <Windows.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include <iostream>
 
 // Link to needed lib files. Can also be done by adding these to Properties -> Linker -> Input -> Additional Dependencies
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "D3DCompiler.lib")
 
 // Window forward declarations.
-void InitialiseWindow();
-void Run();
+bool InitialiseWindow();
+int Run();
 LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARAM lParam);
 
 // DirectX forward declarations.
-void InitialiseDirectX();
-void CreateDeviceAndSwapChain();
-void CreateRenderTargetView();
+bool InitialiseDirectX();
+bool CreateDeviceAndSwapChain();
+bool CreateRenderTargetView();
 void CreateViewport();
-void CreateShaders();
+bool CreateShaders();
 void Render();
 
 // Window global variables.
-HWND gWindowHandle = 0;
+HWND gWindowHandle = NULL;
 int gWindowWidth = 800;
 int gWindowHeight = 600;
 
@@ -56,17 +57,34 @@ ID3D11RenderTargetView* gRTV = nullptr;
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
 
-void main()
+int main(int argc, char* argv)
 {
-	InitialiseWindow();
-	InitialiseDirectX();
-	Run();
+	if (!InitialiseWindow())
+	{
+		MessageBoxA(NULL, "TERMINAL ERROR: Window initialisation failed\nClosing application...", "ERROR", MB_OK);
+		return -1;
+	}
+
+	if (!InitialiseDirectX())
+	{
+		MessageBoxA(NULL, "TERMINAL ERROR: DirectX initialisation failed\nClosing application...", "ERROR", MB_OK);
+		return -1;
+	}
+
+	return Run();
 }
 
-void InitialiseWindow()
+bool InitialiseWindow()
 {
 	// Register the window class to create.
 	HINSTANCE applicationHandle = GetModuleHandle(NULL);
+	if (applicationHandle == NULL)
+	{
+		// GetModuleHandle failed and we have no application handle. Terminal error.
+		std::cout << "Error: Application handle could not be retreieved (code " << GetLastError() << ")." << std::endl;
+		return false;
+	}
+
 	WNDCLASS windowClass;
 	windowClass.style = CS_HREDRAW | CS_VREDRAW;
 	windowClass.lpfnWndProc = WindowProcedure;
@@ -79,7 +97,12 @@ void InitialiseWindow()
 	windowClass.lpszMenuName = NULL;
 	windowClass.lpszClassName = L"WindowClass";	
 
-	RegisterClass(&windowClass);
+	if (RegisterClass(&windowClass) == 0)
+	{
+		// RegisterClass failed and we can't create our window. Terminal error.
+		std::cout << "Error: Window class could not be registered (code " << GetLastError() << ")." << std::endl;
+		return false;
+	}
 
 	gWindowHandle = CreateWindow(
 		L"WindowClass",
@@ -95,11 +118,18 @@ void InitialiseWindow()
 		NULL
 		);
 
+	if (gWindowHandle == NULL)
+	{
+		// Window could not be created. Terminal error.
+		std::cout << "Error: Window class could not be created (code " << GetLastError() << ")." << std::endl;
+		return false;
+	}
+
 	ShowWindow(gWindowHandle, SW_SHOWDEFAULT);
 	UpdateWindow(gWindowHandle);
 }
 
-void Run()
+int Run()
 {
 	MSG windowMsg = {0};
 
@@ -117,6 +147,8 @@ void Run()
 			Render();
 		}
 	}
+
+	return static_cast<int>(windowMsg.wParam); // WM_QUIT's wParam contains the exit code.
 }
 
 LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARAM lParam)
@@ -132,74 +164,112 @@ LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARA
 	return DefWindowProc(handle, message, wParam, lParam);
 }
 
-void InitialiseDirectX()
+bool InitialiseDirectX()
 {
-	CreateDeviceAndSwapChain();
-	CreateRenderTargetView();
+	// If any resource can't be created, it's a terminal error.
+	if (!CreateDeviceAndSwapChain())
+		return false;
+	if (!CreateRenderTargetView())
+		return false;
+	
 	CreateViewport();
-	CreateShaders();
+	
+	// Shader creation failure may not be a terminal error, depending on error handling.
+	if (!CreateShaders())
+		return false;
+
+	return true;
 }
 
-void CreateDeviceAndSwapChain()
+bool CreateDeviceAndSwapChain()
 {
+	// Fill out the swap chain description.
 	DXGI_SWAP_CHAIN_DESC scDesc;
-	scDesc.BufferDesc.Width = gWindowWidth;			// Using the window's size avoids weird effects. If 0 the window's client width is used.
-	scDesc.BufferDesc.Height = gWindowHeight;		// Using the window's size avoids weird effects. If 0 the window's client height is used.
-	scDesc.BufferDesc.RefreshRate.Numerator = 0;	// Screen refresh rate as RationalNumber. Zeroing it out makes DXGI calculate it.
-	scDesc.BufferDesc.RefreshRate.Denominator = 0;	// Screen refresh rate as RationalNumber. Zeroing it out makes DXGI calculate it.
-	scDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;						// The most common format. Variations include [...]UNORM_SRGB.
-	scDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;	// The order pixel rows are drawn to the back buffer doesn't matter.
-	scDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;					// Since the back buffer and window sizes matches, scaling doesn't matter.
-	scDesc.SampleDesc.Count = 1;												// Disable multisampling.
-	scDesc.SampleDesc.Quality = 0;												// Disable multisampling.
-	scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;						// The back buffer will be rendered to.
-	scDesc.BufferCount = 1;							// We only have one back buffer.
-	scDesc.OutputWindow = gWindowHandle;			// Must point to the handle for the window used for rendering.
-	scDesc.Windowed = true;							// Run in windowed mode. Fullscreen is covered in a later sample.
-	scDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;	// This makes the display driver select the most efficient technique.
-	scDesc.Flags = 0;								// No additional options.
+	scDesc.BufferDesc.Width = gWindowWidth;
+	scDesc.BufferDesc.Height = gWindowHeight;
+	scDesc.BufferDesc.RefreshRate.Numerator = 0;
+	scDesc.BufferDesc.RefreshRate.Denominator = 0;
+	scDesc.BufferDesc.Format = DXGI_FORMAT_420_OPAQUE; //DXGI_FORMAT_R8G8B8A8_UNORM;
+	scDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+	scDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+	scDesc.SampleDesc.Count = 1;
+	scDesc.SampleDesc.Quality = 0;
+	scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	scDesc.BufferCount = 1;
+	scDesc.OutputWindow = gWindowHandle;
+	scDesc.Windowed = true;
+	scDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	scDesc.Flags = 0;
 
-	D3D11CreateDeviceAndSwapChain(
-		nullptr,					// Use the default adapter.
-		D3D_DRIVER_TYPE_HARDWARE,	// Use the graphics card for rendering. Other options include software emulation.
-		NULL,						// NULL since we don't use software emulation.
-		NULL,						// No creation flags.
-		nullptr,					// Array of feature levels to try using. With null the following are used 11.0, 10.1, 10.0, 9.3, 9.2, 9.1.
-		0,							// The array above has 0 elements.
-		D3D11_SDK_VERSION,			// Always use this.
-		&scDesc,					// Description of the swap chain.
-		&gSwapChain,				// [out] The created swap chain.
-		&gDevice,					// [out] The created device.
-		nullptr,					// [out] The highest supported feature level (from array).
-		&gContext					// [out] The created device context.
+	UINT createDeviceFlags = 0;
+#if defined(DEBUG) || defined(_DEBUG)
+	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+	HRESULT hr = D3D11CreateDeviceAndSwapChain(
+		nullptr,
+		D3D_DRIVER_TYPE_HARDWARE,
+		NULL,
+		createDeviceFlags,
+		nullptr,
+		0,
+		D3D11_SDK_VERSION,
+		&scDesc,
+		&gSwapChain,
+		&gDevice,
+		nullptr,
+		&gContext
 		);
+	 
+	if (FAILED(hr))
+	{
+		// Device, DeviceContext and Swap Chain creation failed. Terminal error.
+		std::cout << "Error: Device, DeviceContext and Swap Chain could not be created." << std::endl;
+		return false;
+	}
+	return true;
 }
 
-void CreateRenderTargetView()
+bool CreateRenderTargetView()
 {
 	// Get the back buffer from the swap chain, create a render target view of it to use as the target for rendering.
 	ID3D11Texture2D* backBuffer;
-	gSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
-	gDevice->CreateRenderTargetView(backBuffer, nullptr, &gRTV);
-	backBuffer->Release();
+	HRESULT hr = gSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
+	if (FAILED(hr))
+	{
+		// Back buffer could not be retrieved. Terminal error.
+		std::cout << "Error: Back buffer could not be retreieved." << std::endl;
+		return false;
+	}
 
+	hr = gDevice->CreateRenderTargetView(backBuffer, nullptr, &gRTV);
+	if (FAILED(hr))
+	{
+		// Render target view creation failed. Terminal error.
+		std::cout << "Error: Render target view could not be created." << std::endl;
+		return false;
+	}
+
+	backBuffer->Release();
 	gContext->OMSetRenderTargets(1, &gRTV, nullptr);
+
+	return true;
 }
 
 void CreateViewport()
 {
 	D3D11_VIEWPORT vp;
-	vp.TopLeftX = 0.0f;		// The top left corner's x coordinate in pixels from the window's top left corner.
-	vp.TopLeftY = 0.0f;		// The top left corner's y coordinate in pixels from the window's top left corner.
-	vp.Width = static_cast<float>(gWindowWidth);	// This viewport will cover the entire window.
-	vp.Height = static_cast<float>(gWindowHeight);	// This viewport will cover the entire window.
-	vp.MinDepth = 0.0f;		// Minimum depth value used by Ddirect3D is 0.0f so this is used.
-	vp.MaxDepth = 1.0f;		// Maximum depth value used by Ddirect3D is 1.0f so this is used.
+	vp.TopLeftX = 0.0f;
+	vp.TopLeftY = 0.0f;
+	vp.Width = static_cast<float>(gWindowWidth);
+	vp.Height = static_cast<float>(gWindowHeight);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
 
 	gContext->RSSetViewports(1, &vp);
 }
 
-void CreateShaders()
+bool CreateShaders()
 {
 	// Define shader contents. More on writing shaders is covered in a later sample.
 	const char* vertexShader = R"(
@@ -218,64 +288,99 @@ void CreateShaders()
 		}
 		)";
 
-	// Compile and create vertex shader
+	// Compile and create vertex shader.
 	ID3DBlob* compiledShader = nullptr;
-	D3DCompile(
-		reinterpret_cast<LPCVOID>(vertexShader),	// Pointer to the uncompiled source data.
-		strlen(vertexShader),	// Length of the uncompiled source data.
-		NULL,					// Not used.
-		nullptr,				// We don't use any defines.
-		nullptr,				// We don't have any includes.
-		"main",					// The name of the entry function. Must match function in source data.
-		"vs_5_0",				// The shader model to use, "vs" specifies it is a vertex shader, 5_0 that it is shader model 5.0.
-		0,						// No shader compile options.
-		0,						// Ignored when compiling a shader (effect compile options).
-		&compiledShader,		// [out] Compiled shader data.
-		nullptr					// [out] Compile time error data.
+	ID3DBlob* errorMsg = nullptr;
+	HRESULT hr = D3DCompile(
+		reinterpret_cast<LPCVOID>(vertexShader),
+		strlen(vertexShader),
+		NULL,
+		nullptr,
+		nullptr,
+		"main",
+		"vs_5_0",
+		0,
+		0,
+		&compiledShader,
+		&errorMsg
 		);
 
-	gDevice->CreateVertexShader(
-		compiledShader->GetBufferPointer(),	// Pointer to the compiled shader data.
-		compiledShader->GetBufferSize(),	// Size of the compiled shader data.
-		NULL,								// No class linkage interface.
-		&gVertexShader						// [out] The created shader.
+	if (FAILED(hr))
+	{
+		// Shader compilation failed. Terminal error.
+		std::cout << "Error: Vertex shader could not be compiled." << std::endl;
+		if (errorMsg != nullptr)
+			OutputDebugStringA(static_cast<char*>(errorMsg->GetBufferPointer()));
+		return false;
+	}
+
+	hr = gDevice->CreateVertexShader(
+		compiledShader->GetBufferPointer(),
+		compiledShader->GetBufferSize(),
+		NULL,
+		&gVertexShader
 		);
 
-	// Compile and create pixel shader. Works the exact same way as above.
+	if (FAILED(hr))
+	{
+		// Shader creation failed. Terminal error.
+		std::cout << "Error: Vertex shader could not be created." << std::endl;
+		return false;
+	}
+
+	// Compile and create pixel shader.
 	compiledShader = nullptr;	// Clear compiledShader so that the vertex shader content is removed.
-	D3DCompile(
+	errorMsg = nullptr;			// Clear errorMsg so that the vertex shader errors (if any) are removed.
+	hr = D3DCompile(
 		reinterpret_cast<LPCVOID>(pixelShader),
 		strlen(pixelShader),
 		NULL,
 		nullptr,
 		nullptr,
 		"main",
-		"ps_5_0",				// NOTE: This must be changed to ps_5_0 for pixel shader model 5.0
+		"ps_5_0",
 		0,
 		0,
 		&compiledShader,
-		nullptr
+		&errorMsg
 		);
 
-	gDevice->CreatePixelShader(				// Works the exact same way as above.
+	if (FAILED(hr))
+	{
+		// Shader compilation failed. Terminal error.
+		std::cout << "Error: Pixel shader could not be compiled." << std::endl;
+		if (errorMsg != nullptr)
+			OutputDebugStringA(static_cast<char*>(errorMsg->GetBufferPointer()));
+		return false;
+	}
+
+	hr = gDevice->CreatePixelShader(
 		compiledShader->GetBufferPointer(),
 		compiledShader->GetBufferSize(),
 		NULL,
 		&gPixelShader
 		);
+
+	if (FAILED(hr))
+	{
+		// Shader creation failed. Terminal error.
+		std::cout << "Error: Pixel shader could not be created." << std::endl;
+		return false;
+	}
+
+	return true;
 }
 
 void Render()
 {
-	FLOAT bgColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };		// Back buffer clear colour as an array of floats (rgba).
-	gContext->ClearRenderTargetView(gRTV, bgColor);		// Clear the render target view using the specified colour.
+	FLOAT bgColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	gContext->ClearRenderTargetView(gRTV, bgColor);
 
-	gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	// The vertices should be interpreted as parts of a triangle.
-	gContext->VSSetShader(gVertexShader, NULL, NULL);	// Set the vertex shader to use. No class instances are used.
-	gContext->PSSetShader(gPixelShader, NULL, NULL);	// Set the pixel shader to use. No class instances are used.
+	gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	gContext->VSSetShader(gVertexShader, NULL, NULL);
+	gContext->PSSetShader(gPixelShader, NULL, NULL);
 
-	gContext->Draw(3, 0);								// Draw 3 vertices.
+	gContext->Draw(3, 0);
 
-	// When everything has been drawn, present the final result on the screen by swapping the back and front buffers.
 	gSwapChain->Present(0, 0);
 }
