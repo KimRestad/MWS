@@ -43,7 +43,7 @@ void CreateShaders();
 void Render();
 
 // Window global variables.
-HWND gWindowHandle = 0;
+HWND gWindowHandle = NULL;
 int gWindowWidth = 800;
 int gWindowHeight = 600;
 

@@ -29,7 +29,7 @@ void Run();
 LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARAM lParam);
 
 // Window global variables.
-HWND gWindowHandle = 0;
+HWND gWindowHandle = NULL;
 int gWindowWidth = 800;
 int gWindowHeight = 600;
 
