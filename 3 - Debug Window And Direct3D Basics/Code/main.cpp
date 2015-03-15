@@ -37,11 +37,11 @@ int Run();
 LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARAM lParam);
 
 // DirectX forward declarations.
-bool InitialiseDirectX();
-bool CreateDeviceAndSwapChain();
-bool CreateRenderTargetView();
+bool InitialiseDirectX();			// Changed return type to indicate whether function succeeded or failed.
+bool CreateDeviceAndSwapChain();	// Changed return type to indicate whether function succeeded or failed.
+bool CreateRenderTargetView();		// Changed return type to indicate whether function succeeded or failed.
 void CreateViewport();
-bool CreateShaders();
+bool CreateShaders();				// Changed return type to indicate whether function succeeded or failed.
 void Render();
 
 // Window global variables.
@@ -59,28 +59,30 @@ ID3D11PixelShader* gPixelShader = nullptr;
 
 int main(int argc, char* argv)
 {
+	// If window cannot be created, it's a terminal error. Show a message box alerting the user that something went wrong.
 	if (!InitialiseWindow())
 	{
 		MessageBoxA(NULL, "TERMINAL ERROR: Window initialisation failed\nClosing application...", "ERROR", MB_OK);
 		return -1;
 	}
 
+	// If DirectX cannot be initialised, nothing can be drawn. Thus, it's a terminal error.
+	// Show a message box alerting the user that something went wrong.
 	if (!InitialiseDirectX())
 	{
 		MessageBoxA(NULL, "TERMINAL ERROR: DirectX initialisation failed\nClosing application...", "ERROR", MB_OK);
 		return -1;
 	}
 
-	return Run();
+	return Run();		// Run returns the exit code of the program.
 }
 
 bool InitialiseWindow()
 {
-	// Register the window class to create.
 	HINSTANCE applicationHandle = GetModuleHandle(NULL);
 	if (applicationHandle == NULL)
 	{
-		// GetModuleHandle failed and we have no application handle. Terminal error.
+		// GetModuleHandle failed and we have no application handle. Error - return false.
 		std::cout << "Error: Application handle could not be retreieved (code " << GetLastError() << ")." << std::endl;
 		return false;
 	}
@@ -99,7 +101,7 @@ bool InitialiseWindow()
 
 	if (RegisterClass(&windowClass) == 0)
 	{
-		// RegisterClass failed and we can't create our window. Terminal error.
+		// RegisterClass failed and we can't create our window. Error - return false.
 		std::cout << "Error: Window class could not be registered (code " << GetLastError() << ")." << std::endl;
 		return false;
 	}
@@ -120,13 +122,14 @@ bool InitialiseWindow()
 
 	if (gWindowHandle == NULL)
 	{
-		// Window could not be created. Terminal error.
+		// Window could not be created. Error - return false.
 		std::cout << "Error: Window class could not be created (code " << GetLastError() << ")." << std::endl;
 		return false;
 	}
 
 	ShowWindow(gWindowHandle, SW_SHOWDEFAULT);
 	UpdateWindow(gWindowHandle);
+	return true;			// No errors - return true.
 }
 
 int Run()
@@ -166,7 +169,7 @@ LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARA
 
 bool InitialiseDirectX()
 {
-	// If any resource can't be created, it's a terminal error.
+	// If any resource can't be created, initialisation has failed - return false.
 	if (!CreateDeviceAndSwapChain())
 		return false;
 	if (!CreateRenderTargetView())
@@ -178,7 +181,7 @@ bool InitialiseDirectX()
 	if (!CreateShaders())
 		return false;
 
-	return true;
+	return true;			// No errors - return true.
 }
 
 bool CreateDeviceAndSwapChain()
@@ -189,7 +192,7 @@ bool CreateDeviceAndSwapChain()
 	scDesc.BufferDesc.Height = gWindowHeight;
 	scDesc.BufferDesc.RefreshRate.Numerator = 0;
 	scDesc.BufferDesc.RefreshRate.Denominator = 0;
-	scDesc.BufferDesc.Format = DXGI_FORMAT_420_OPAQUE; //DXGI_FORMAT_R8G8B8A8_UNORM;
+	scDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	scDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	scDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	scDesc.SampleDesc.Count = 1;
@@ -201,11 +204,14 @@ bool CreateDeviceAndSwapChain()
 	scDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
 	scDesc.Flags = 0;
 
+	// If we're running a Debug build, either DEBUG or _DEBUG should be defined. In that case,
+	// the Direct3D device should be created with the debug flag set so that we can take advantage of the debug layer
 	UINT createDeviceFlags = 0;
 #if defined(DEBUG) || defined(_DEBUG)
 	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
+	// Saving the function's return code in hr to check whether function failed or succeeded.
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(
 		nullptr,
 		D3D_DRIVER_TYPE_HARDWARE,
@@ -220,32 +226,39 @@ bool CreateDeviceAndSwapChain()
 		nullptr,
 		&gContext
 		);
-	 
+
+	// FAILED() is a macro checking the hr value, returning true if the hr code indicates failure.
 	if (FAILED(hr))
 	{
-		// Device, DeviceContext and Swap Chain creation failed. Terminal error.
+		// Device, DeviceContext and Swap Chain creation failed. Write error message to console and return false.
 		std::cout << "Error: Device, DeviceContext and Swap Chain could not be created." << std::endl;
 		return false;
 	}
-	return true;
+	return true;			// No errors - return true.
 }
 
 bool CreateRenderTargetView()
 {
-	// Get the back buffer from the swap chain, create a render target view of it to use as the target for rendering.
 	ID3D11Texture2D* backBuffer;
+
+	// Save the function's return code in hr to check whether function failed or succeeded.
 	HRESULT hr = gSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
+	
+	// FAILED() is a macro checking the hr value, returning true if the hr code indicates failure.
 	if (FAILED(hr))
 	{
-		// Back buffer could not be retrieved. Terminal error.
+		// Back buffer could not be retrieved. Write error message to console and return false.
 		std::cout << "Error: Back buffer could not be retreieved." << std::endl;
 		return false;
 	}
 
+	// Saving the function's return code in hr to check whether function failed or succeeded.
 	hr = gDevice->CreateRenderTargetView(backBuffer, nullptr, &gRTV);
+
+	// FAILED() is a macro checking the hr value, returning true if the hr code indicates failure.
 	if (FAILED(hr))
 	{
-		// Render target view creation failed. Terminal error.
+		// Render target view creation failed. Write error message to console and return false.
 		std::cout << "Error: Render target view could not be created." << std::endl;
 		return false;
 	}
@@ -253,7 +266,7 @@ bool CreateRenderTargetView()
 	backBuffer->Release();
 	gContext->OMSetRenderTargets(1, &gRTV, nullptr);
 
-	return true;
+	return true;			// No errors - return true.
 }
 
 void CreateViewport()
@@ -290,7 +303,9 @@ bool CreateShaders()
 
 	// Compile and create vertex shader.
 	ID3DBlob* compiledShader = nullptr;
-	ID3DBlob* errorMsg = nullptr;
+	ID3DBlob* errorMsg = nullptr;	// A variable to hold the function error messages, if any.
+
+	// Saving the function's return code in hr to check whether function failed or succeeded.
 	HRESULT hr = D3DCompile(
 		reinterpret_cast<LPCVOID>(vertexShader),
 		strlen(vertexShader),
@@ -302,18 +317,20 @@ bool CreateShaders()
 		0,
 		0,
 		&compiledShader,
-		&errorMsg
+		&errorMsg				// Pass in the ID3DBlob* pointer for error messages, if any.
 		);
 
+	// FAILED() is a macro checking the hr value, returning true if the hr code indicates failure.
 	if (FAILED(hr))
 	{
-		// Shader compilation failed. Terminal error.
+		// Shader compilation failed. Write error message to console.
 		std::cout << "Error: Vertex shader could not be compiled." << std::endl;
 		if (errorMsg != nullptr)
 			OutputDebugStringA(static_cast<char*>(errorMsg->GetBufferPointer()));
-		return false;
+		return false;		// Terminal error - return false.
 	}
 
+	// Saving the function's return code in hr to check whether function failed or succeeded.
 	hr = gDevice->CreateVertexShader(
 		compiledShader->GetBufferPointer(),
 		compiledShader->GetBufferSize(),
@@ -321,16 +338,19 @@ bool CreateShaders()
 		&gVertexShader
 		);
 
+	// FAILED() is a macro checking the hr value, returning true if the hr code indicates failure.
 	if (FAILED(hr))
 	{
-		// Shader creation failed. Terminal error.
+		// Shader creation failed. Write error message to console.
 		std::cout << "Error: Vertex shader could not be created." << std::endl;
-		return false;
+		return false;		// Terminal error - return false.
 	}
 
 	// Compile and create pixel shader.
 	compiledShader = nullptr;	// Clear compiledShader so that the vertex shader content is removed.
 	errorMsg = nullptr;			// Clear errorMsg so that the vertex shader errors (if any) are removed.
+
+	// Saving the function's return code in hr to check whether function failed or succeeded.
 	hr = D3DCompile(
 		reinterpret_cast<LPCVOID>(pixelShader),
 		strlen(pixelShader),
@@ -345,15 +365,17 @@ bool CreateShaders()
 		&errorMsg
 		);
 
+	// FAILED() is a macro checking the hr value, returning true if the hr code indicates failure.
 	if (FAILED(hr))
 	{
-		// Shader compilation failed. Terminal error.
+		// Shader compilation failed. Write error message to console.
 		std::cout << "Error: Pixel shader could not be compiled." << std::endl;
 		if (errorMsg != nullptr)
 			OutputDebugStringA(static_cast<char*>(errorMsg->GetBufferPointer()));
-		return false;
+		return false;		// Terminal error - return false.
 	}
 
+	// Saving the function's return code in hr to check whether function failed or succeeded.
 	hr = gDevice->CreatePixelShader(
 		compiledShader->GetBufferPointer(),
 		compiledShader->GetBufferSize(),
@@ -361,14 +383,15 @@ bool CreateShaders()
 		&gPixelShader
 		);
 
+	// FAILED() is a macro checking the hr value, returning true if the hr code indicates failure.
 	if (FAILED(hr))
 	{
-		// Shader creation failed. Terminal error.
+		// Shader creation failed. Write error message to console.
 		std::cout << "Error: Pixel shader could not be created." << std::endl;
-		return false;
+		return false;		// Terminal error - return false.
 	}
 
-	return true;
+	return true;			// No errors - return true.
 }
 
 void Render()
