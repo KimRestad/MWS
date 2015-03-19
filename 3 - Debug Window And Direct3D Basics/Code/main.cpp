@@ -62,7 +62,7 @@ int main(int argc, char* argv)
 	// If window cannot be created, it's a terminal error. Show a message box alerting the user that something went wrong.
 	if (!InitialiseWindow())
 	{
-		MessageBoxA(NULL, "TERMINAL ERROR: Window initialisation failed\nClosing application...", "ERROR", MB_OK);
+		MessageBox(NULL, L"TERMINAL ERROR: Window initialisation failed\nClosing application...", L"ERROR", MB_OK);
 		return -1;
 	}
 
@@ -70,7 +70,7 @@ int main(int argc, char* argv)
 	// Show a message box alerting the user that something went wrong.
 	if (!InitialiseDirectX())
 	{
-		MessageBoxA(NULL, "TERMINAL ERROR: DirectX initialisation failed\nClosing application...", "ERROR", MB_OK);
+		MessageBox(NULL, L"TERMINAL ERROR: DirectX initialisation failed\nClosing application...", L"ERROR", MB_OK);
 		return -1;
 	}
 
