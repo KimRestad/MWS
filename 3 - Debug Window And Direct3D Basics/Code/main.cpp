@@ -37,7 +37,7 @@ int Run();
 LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARAM lParam);
 
 // DirectX forward declarations.
-bool InitialiseDirectX();			// Changed return type to indicate whether function succeeded or failed.
+bool InitialiseDirect3D();			// Changed return type to indicate whether function succeeded or failed.
 bool CreateDeviceAndSwapChain();	// Changed return type to indicate whether function succeeded or failed.
 bool CreateRenderTargetView();		// Changed return type to indicate whether function succeeded or failed.
 void CreateViewport();
@@ -68,7 +68,7 @@ int main(int argc, char* argv)
 
 	// If DirectX cannot be initialised, nothing can be drawn. Thus, it's a terminal error.
 	// Show a message box alerting the user that something went wrong.
-	if (!InitialiseDirectX())
+	if (!InitialiseDirect3D())
 	{
 		MessageBox(NULL, L"TERMINAL ERROR: DirectX initialisation failed\nClosing application...", L"ERROR", MB_OK);
 		return -1;
@@ -167,7 +167,7 @@ LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARA
 	return DefWindowProc(handle, message, wParam, lParam);
 }
 
-bool InitialiseDirectX()
+bool InitialiseDirect3D()
 {
 	// If any resource can't be created, initialisation has failed - return false.
 	if (!CreateDeviceAndSwapChain())

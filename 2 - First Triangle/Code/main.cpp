@@ -35,7 +35,7 @@ void Run();
 LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARAM lParam);
 
 // DirectX forward declarations.
-void InitialiseDirectX();
+void InitialiseDirect3D();
 void CreateDeviceAndSwapChain();
 void CreateRenderTargetView();
 void CreateViewport();
@@ -58,7 +58,7 @@ ID3D11PixelShader* gPixelShader = nullptr;
 void main()
 {
 	InitialiseWindow();
-	InitialiseDirectX();
+	InitialiseDirect3D();
 	Run();
 }
 
@@ -131,7 +131,7 @@ LRESULT CALLBACK WindowProcedure(HWND handle, UINT message, WPARAM wParam, LPARA
 	return DefWindowProc(handle, message, wParam, lParam);
 }
 
-void InitialiseDirectX()
+void InitialiseDirect3D()
 {
 	CreateDeviceAndSwapChain();
 	CreateRenderTargetView();
