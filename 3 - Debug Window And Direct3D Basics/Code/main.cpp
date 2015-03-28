@@ -211,6 +211,8 @@ bool CreateDeviceAndSwapChain()
 	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
+	D3D_FEATURE_LEVEL supportedFeatureLevel;
+
 	// Saving the function's return code in hr to check whether function failed or succeeded.
 	HRESULT hr = D3D11CreateDeviceAndSwapChain(
 		nullptr,
@@ -223,7 +225,7 @@ bool CreateDeviceAndSwapChain()
 		&scDesc,
 		&gSwapChain,
 		&gDevice,
-		nullptr,
+		&supportedFeatureLevel,
 		&gContext
 		);
 
@@ -234,6 +236,14 @@ bool CreateDeviceAndSwapChain()
 		std::cout << "Error: Device, DeviceContext and Swap Chain could not be created." << std::endl;
 		return false;
 	}
+
+	// If the graphics card's highest supported feature level is not 11 or above, our application ends in error.
+	if (supportedFeatureLevel < D3D_FEATURE_LEVEL_11_0)
+	{
+		std::cout << "Error: DirectX 11 is not supported." << std::endl;
+		return false;
+	}
+
 	return true;			// No errors - return true.
 }
 
