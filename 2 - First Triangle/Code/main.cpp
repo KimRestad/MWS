@@ -192,10 +192,10 @@ void CreateViewport()
 	vp.TopLeftY = 0.0f;		// The top left corner's y coordinate in pixels from the window's top left corner.
 	vp.Width = static_cast<float>(gWindowWidth);	// This viewport will cover the entire window.
 	vp.Height = static_cast<float>(gWindowHeight);	// This viewport will cover the entire window.
-	vp.MinDepth = 0.0f;		// Minimum depth value used by Ddirect3D is 0.0f so this is used.
-	vp.MaxDepth = 1.0f;		// Maximum depth value used by Ddirect3D is 1.0f so this is used.
+	vp.MinDepth = 0.0f;		// Minimum depth value used by Direct3D is 0.0f so this is used.
+	vp.MaxDepth = 1.0f;		// Maximum depth value used by Direct3D is 1.0f so this is used.
 
-	gContext->RSSetViewports(1, &vp);
+	gContext->RSSetViewports(1, &vp);				// Set the viewport to use.
 }
 
 void CreateShaders()
