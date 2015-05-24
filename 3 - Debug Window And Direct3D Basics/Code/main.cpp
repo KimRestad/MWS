@@ -312,7 +312,7 @@ bool CreateShaders()
 		)";
 
 	// Compile and create vertex shader.
-	ID3DBlob* compiledShader = nullptr;
+	ID3DBlob* compiledVS = nullptr;	// A variable to hold the compiled vertex shader data.
 	ID3DBlob* errorMsg = nullptr;	// A variable to hold the function error messages, if any.
 
 	// Saving the function's return code in hr to check whether function failed or succeeded.
@@ -326,7 +326,7 @@ bool CreateShaders()
 		"vs_5_0",
 		0,
 		0,
-		&compiledShader,
+		&compiledVS,
 		&errorMsg				// Pass in the ID3DBlob* pointer for error messages, if any.
 		);
 
@@ -342,8 +342,8 @@ bool CreateShaders()
 
 	// Saving the function's return code in hr to check whether function failed or succeeded.
 	hr = gDevice->CreateVertexShader(
-		compiledShader->GetBufferPointer(),
-		compiledShader->GetBufferSize(),
+		compiledVS->GetBufferPointer(),
+		compiledVS->GetBufferSize(),
 		NULL,
 		&gVertexShader
 		);
@@ -357,8 +357,8 @@ bool CreateShaders()
 	}
 
 	// Compile and create pixel shader.
-	compiledShader = nullptr;	// Clear compiledShader so that the vertex shader content is removed.
-	errorMsg = nullptr;			// Clear errorMsg so that the vertex shader errors (if any) are removed.
+	ID3DBlob* compiledPS = nullptr;	// A variable to hold the compiled pixel shader data.
+	errorMsg = nullptr;				// Clear errorMsg so that the vertex shader errors (if any) are removed.
 
 	// Saving the function's return code in hr to check whether function failed or succeeded.
 	hr = D3DCompile(
@@ -371,7 +371,7 @@ bool CreateShaders()
 		"ps_5_0",
 		0,
 		0,
-		&compiledShader,
+		&compiledPS,
 		&errorMsg
 		);
 
@@ -387,8 +387,8 @@ bool CreateShaders()
 
 	// Saving the function's return code in hr to check whether function failed or succeeded.
 	hr = gDevice->CreatePixelShader(
-		compiledShader->GetBufferPointer(),
-		compiledShader->GetBufferSize(),
+		compiledPS->GetBufferPointer(),
+		compiledPS->GetBufferSize(),
 		NULL,
 		&gPixelShader
 		);

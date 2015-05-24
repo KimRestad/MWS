@@ -218,7 +218,7 @@ void CreateShaders()
 		)";
 
 	// Compile and create vertex shader
-	ID3DBlob* compiledShader = nullptr;
+	ID3DBlob* compiledVS = nullptr;	// A variable to hold the compiled vertex shader data.
 	D3DCompile(
 		reinterpret_cast<LPCVOID>(vertexShader),	// Pointer to the uncompiled source data.
 		strlen(vertexShader),	// Length of the uncompiled source data.
@@ -229,19 +229,19 @@ void CreateShaders()
 		"vs_5_0",				// The shader model to use, "vs" specifies it is a vertex shader, 5_0 that it is shader model 5.0.
 		0,						// No shader compile options.
 		0,						// Ignored when compiling a shader (effect compile options).
-		&compiledShader,		// [out] Compiled shader data.
+		&compiledVS,			// [out] Compiled shader data.
 		nullptr					// [out] Compile time error data.
 		);
 
 	gDevice->CreateVertexShader(
-		compiledShader->GetBufferPointer(),	// Pointer to the compiled shader data.
-		compiledShader->GetBufferSize(),	// Size of the compiled shader data.
+		compiledVS->GetBufferPointer(),		// Pointer to the compiled shader data.
+		compiledVS->GetBufferSize(),		// Size of the compiled shader data.
 		NULL,								// No class linkage interface.
 		&gVertexShader						// [out] The created shader.
 		);
 
 	// Compile and create pixel shader. Works the exact same way as above.
-	compiledShader = nullptr;	// Clear compiledShader so that the vertex shader content is removed.
+	ID3DBlob* compiledPS = nullptr;	// A variable to hold the compiled pixel shader data.
 	D3DCompile(
 		reinterpret_cast<LPCVOID>(pixelShader),
 		strlen(pixelShader),
@@ -252,13 +252,13 @@ void CreateShaders()
 		"ps_5_0",				// NOTE: This must be changed to ps_5_0 for pixel shader model 5.0
 		0,
 		0,
-		&compiledShader,
+		&compiledPS,
 		nullptr
 		);
 
 	gDevice->CreatePixelShader(				// Works the exact same way as above.
-		compiledShader->GetBufferPointer(),
-		compiledShader->GetBufferSize(),
+		compiledPS->GetBufferPointer(),
+		compiledPS->GetBufferSize(),
 		NULL,
 		&gPixelShader
 		);
