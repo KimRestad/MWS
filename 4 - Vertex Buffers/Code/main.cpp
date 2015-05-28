@@ -1,6 +1,6 @@
 // ######################################################################################
-// ## A minimal working sample setting up DirectX 11 and drawing a simple triangle
-// ## using a vertex buffer.
+// ## A minimal working sample setting up DirectX 11 and drawing a simple coloured
+// ## rectangle using a vertex buffer, input layout and shaders.
 // ##
 // ## Copyright (c) <2015> <Tim Henriksson and Kim Restad>
 // ## 
@@ -25,10 +25,19 @@
 #include <Windows.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include <DirectXMath.h>
 
 // Link to needed lib files. Can also be done by adding these to Properties -> Linker -> Input -> Additional Dependencies
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "D3DCompiler.lib")
+
+// Define the information contained in each vertex.
+struct Vertex
+{
+	DirectX::XMFLOAT3 position;
+	DirectX::XMFLOAT4 colour;
+	DirectX::XMFLOAT2 uv;
+};
 
 // Window forward declarations.
 void InitialiseWindow();
@@ -40,6 +49,10 @@ void InitialiseDirect3D();
 void CreateDeviceAndSwapChain();
 void CreateRenderTargetView();
 void CreateViewport();
+
+// Remaining forward declarations
+void SetupScene();
+void CreateVertexBuffer();
 void CreateShaders();
 void Render();
 
@@ -53,13 +66,17 @@ ID3D11Device* gDevice = nullptr;
 ID3D11DeviceContext* gContext = nullptr;
 IDXGISwapChain* gSwapChain = nullptr;
 ID3D11RenderTargetView* gRTV = nullptr;
+
 ID3D11VertexShader* gVertexShader = nullptr;
 ID3D11PixelShader* gPixelShader = nullptr;
+ID3D11InputLayout* gInputLayout = nullptr;
+ID3D11Buffer* gVertexBuffer = nullptr;
 
 void main()
 {
 	InitialiseWindow();
 	InitialiseDirect3D();
+	SetupScene();
 	Run();
 }
 
@@ -137,7 +154,6 @@ void InitialiseDirect3D()
 	CreateDeviceAndSwapChain();
 	CreateRenderTargetView();
 	CreateViewport();
-	CreateShaders();
 }
 
 void CreateDeviceAndSwapChain()
@@ -199,50 +215,121 @@ void CreateViewport()
 	gContext->RSSetViewports(1, &vp);				// Set the viewport to use.
 }
 
+void SetupScene()
+{
+	CreateVertexBuffer();
+	CreateShaders();
+}
+
+void CreateVertexBuffer()
+{
+	// Create vertices.
+	Vertex vertices[] = 
+	{
+		// First triangle.
+		{ DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },	// Vertex 0, red
+		{ DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) },	// Vertex 2, blue
+		{ DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },	// Vertex 1, green
+
+		// Second triangle, using two of the same vertices as the first triangle: vertex 1 and vertex 0.
+		{ DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) },		// Vertex 3, white
+		{ DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },	// Vertex 1, green
+		{ DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },	// Vertex 0, red
+	};
+
+	// Fill out the buffer description to use when creating our vertex buffer.
+	D3D11_BUFFER_DESC bufferDesc;
+	bufferDesc.ByteWidth = sizeof(vertices);			// The buffer needs to know the total size of its data, i.e. all vertices.
+	bufferDesc.Usage = D3D11_USAGE_IMMUTABLE;			// A buffer whose contents never change after creation is IMMUTABLE.
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;	// For a vertex buffer, this flag must be specified.
+	bufferDesc.CPUAccessFlags = 0;						// The CPU won't access the buffer after creation.
+	bufferDesc.MiscFlags = 0;							// The buffer is not doing anything extraordinary.
+	bufferDesc.StructureByteStride = 0;					// Only used for structured buffers, which a vertex buffer is not.
+	
+	// Define what data our buffer will contain.
+	D3D11_SUBRESOURCE_DATA bufferContents;
+	bufferContents.pSysMem = vertices;
+
+	// Create the buffer.
+	gDevice->CreateBuffer(&bufferDesc, &bufferContents, &gVertexBuffer);
+}
+
 void CreateShaders()
 {
-	// Define shader contents. More on writing shaders is covered in a later sample.
+	// The vertex shader is written in HLSL and defines one struct for input (needs to correspond with the vertex
+	// structure defined above, and with the input layout) and one struct for output (needs to mirror the pixel shader
+	// input struct).
+	// Each value in the input and output structs specify a type, name and semantic. A position vector that is sent to
+	// the pixel shader (i.e. the output position) should specify the semantic SV_POSITION.
+	// The main function simply passes on the input information for each vertex to the output, changing the position 
+	// from a three dimensional vector to a four dimensional with 1.0f for last element.
 	const char* vertexShader = R"(
-		float4 main(uint id : SV_VERTEXID) : SV_POSITION
+		struct VSInput
 		{
-			// Magic to create a triangle vertex given an id [0-2].
-			return float4(-0.5f + (float)(id % 2), -0.5f + (id == 0), 0.0f, 1.0f);
+			float3 position : POSITION;
+			float4 colour : COLOR;			
+		};
+
+		struct VSOutput
+		{
+			float4 position : SV_POSITION;
+			float4 colour : COLOR;
+		};
+		
+		VSOutput main(VSInput input)
+		{
+			VSOutput output;
+			
+			output.position = float4(input.position, 1.0f);
+			output.colour = input.colour;			
+
+			return output;
 		}
 		)";
 
+	// The pixel shader defines it input struct (mirror of the vertex shader output struct). If the position
+	// element's semantic is SV_POSITION, we don't need to process it further.
+	// The main function is executed for each pixel covered by a primitive (triangle, in this sample) and returns
+	// the colour the pixel should be painted in - a four dimensional float using the semantic SV_TARGET.
+	// The input's colour is interpolated between the vertices colour giving a nice gradient. This is returned.
 	const char* pixelShader = R"(
-		float4 main(float4 position : SV_POSITION) : SV_TARGET
+		struct PSInput
 		{
-			// If the pixel is covered by the triangle, give the pixel red colour.
-			return float4(1.0f, 0.0f, 0.0f, 1.0f);
+			float4 position : SV_POSITION;
+			float4 colour : COLOR;
+		};
+		
+		float4 main(PSInput input) : SV_TARGET
+		{
+			return input.colour;
 		}
 		)";
 
-	// Compile and create vertex shader
+	// Compile and create vertex shader.
 	ID3DBlob* compiledVS = nullptr;	// A variable to hold the compiled vertex shader data.
 	D3DCompile(
-		reinterpret_cast<LPCVOID>(vertexShader),	// Pointer to the uncompiled source data.
-		strlen(vertexShader),	// Length of the uncompiled source data.
-		NULL,					// Not used.
-		nullptr,				// We don't use any defines.
-		nullptr,				// We don't have any includes.
-		"main",					// The name of the entry function. Must match function in source data.
-		"vs_5_0",				// The shader model to use, "vs" specifies it is a vertex shader, 5_0 that it is shader model 5.0.
-		0,						// No shader compile options.
-		0,						// Ignored when compiling a shader (effect compile options).
-		&compiledVS,		// [out] Compiled shader data.
-		nullptr					// [out] Compile time error data.
+		reinterpret_cast<LPCVOID>(vertexShader),
+		strlen(vertexShader),
+		NULL,
+		nullptr,
+		nullptr,
+		"main",
+		"vs_5_0",
+		0,
+		0,
+		&compiledVS,
+		nullptr
 		);
 
 	gDevice->CreateVertexShader(
-		compiledVS->GetBufferPointer(),	// Pointer to the compiled shader data.
-		compiledVS->GetBufferSize(),	// Size of the compiled shader data.
-		NULL,								// No class linkage interface.
-		&gVertexShader						// [out] The created shader.
+		compiledVS->GetBufferPointer(),
+		compiledVS->GetBufferSize(),
+		NULL,
+		&gVertexShader
 		);
 
 	// Compile and create pixel shader. Works the exact same way as above.
-	ID3DBlob* compiledPS = nullptr;	// A variable to hold the compiled pixel shader data.
+	ID3DBlob* compiledPS = nullptr;
 	D3DCompile(
 		reinterpret_cast<LPCVOID>(pixelShader),
 		strlen(pixelShader),
@@ -250,19 +337,33 @@ void CreateShaders()
 		nullptr,
 		nullptr,
 		"main",
-		"ps_5_0",				// NOTE: This must be changed to ps_5_0 for pixel shader model 5.0
+		"ps_5_0",
 		0,
 		0,
 		&compiledPS,
 		nullptr
 		);
 
-	gDevice->CreatePixelShader(				// Works the exact same way as above.
+	gDevice->CreatePixelShader(
 		compiledPS->GetBufferPointer(),
 		compiledPS->GetBufferSize(),
 		NULL,
 		&gPixelShader
 		);
+
+	// Define the input description. Semantic names must correspond to the semantic names used in the vertex shader inputs.
+	D3D11_INPUT_ELEMENT_DESC inputDesc[] =
+	{
+		// For each input: Semantic name, semantic index (if multiple with the same name), input format,
+		// input slot (usually 0), byte offset (depends on the previous format size), input slot class (usually 
+		// INPUT_PER_VERTEX_DATA), instance data step rate (always 0 when using INPUT_PER_VERTEX_DATA).
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+
+	// Create the input layout to go with our vertex shader (the layout is validated against the shader's input signature).
+	int inputLayoutSize = sizeof(inputDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
+	gDevice->CreateInputLayout(inputDesc, inputLayoutSize, compiledVS->GetBufferPointer(), compiledVS->GetBufferSize(), &gInputLayout);
 }
 
 void Render()
@@ -270,11 +371,19 @@ void Render()
 	FLOAT bgColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };		// Back buffer clear colour as an array of floats (rgba).
 	gContext->ClearRenderTargetView(gRTV, bgColor);		// Clear the render target view using the specified colour.
 
+	// The stride and offset need to be stored in variables as we need to provide pointers to them when setting the vertex buffer.
+	UINT vbStride = sizeof(Vertex);
+	UINT vbOffset = 0;
+
+	// Set the input layout, vertex buffer and topology to use when drawing.
+	gContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vbStride, &vbOffset);
+	gContext->IASetInputLayout(gInputLayout);
 	gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	// The vertices should be interpreted as parts of a triangle.
+
 	gContext->VSSetShader(gVertexShader, NULL, NULL);	// Set the vertex shader to use. No class instances are used.
 	gContext->PSSetShader(gPixelShader, NULL, NULL);	// Set the pixel shader to use. No class instances are used.
 
-	gContext->Draw(3, 0);								// Draw 3 vertices.
+	gContext->Draw(6, 0);								// Draw 6 vertices, three for each triangle.
 
 	// When everything has been drawn, present the final result on the screen by swapping the back and front buffers.
 	gSwapChain->Present(0, 0);
