@@ -1,33 +1,32 @@
-// ######################################################################################
-// ## A minimal working sample setting up DirectX 11 and drawing a simple coloured
-// ## rectangle using a vertex buffer, input layout and shaders in separate files.
+// ###########################################################################################
+// ## A minimal working sample setting up DirectX 11 and drawing a simple coloured rectangle
+// ## using a vertex buffer, input layout and shaders in separate files.
 // ##
 // ## Copyright (c) <2015> <Tim Henriksson and Kim Restad>
 // ## 
-// ## This software is provided 'as-is', without any express or implied
-// ## warranty. In no event will the authors be held liable for any damages
-// ## arising from the use of this software.
+// ## This software is provided 'as-is', without any express or implied warranty. In no event
+// ## will the authors be held liable for any damages arising from the use of this software.
 // ## 
-// ## Permission is granted to anyone to use this software for any purpose,
-// ## including commercial applications, and to alter it and redistribute it
-// ## freely, subject to the following restrictions:
+// ## Permission is granted to anyone to use this software for any purpose, including
+// ## commercial applications, and to alter it and redistribute it freely, subject to the
+// ## following restrictions:
 // ## 
-// ## 1. The origin of this software must not be misrepresented; you must not
-// ## claim that you wrote the original software.If you use this software
-// ## in a product, an acknowledgement in the product documentation would be
-// ## appreciated but is not required.
+// ## 1. The origin of this software must not be misrepresented; you must not claim that you
+// ## wrote the original software. If you use this software in a product, an acknowledgement
+// ## in the product documentation would be appreciated but is not required.
 // ## 2. Altered source versions must be plainly marked as such, and must not be
 // ## misrepresented as being the original software.
 // ## 3. This notice may not be removed or altered from any source distribution.
 // ##
-// ######################################################################################
+// ###########################################################################################
 
 #include <Windows.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 
-// Link to needed lib files. Can also be done by adding these to Properties -> Linker -> Input -> Additional Dependencies
+// Link to needed lib files. Can also be done by adding these to
+// Properties -> Linker -> Input -> Additional Dependencies
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "D3DCompiler.lib")
 
@@ -159,41 +158,42 @@ void InitialiseDirect3D()
 void CreateDeviceAndSwapChain()
 {
 	DXGI_SWAP_CHAIN_DESC scDesc;
-	scDesc.BufferDesc.Width = gWindowWidth;			// Using the window's size avoids weird effects. If 0 the window's client width is used.
-	scDesc.BufferDesc.Height = gWindowHeight;		// Using the window's size avoids weird effects. If 0 the window's client height is used.
-	scDesc.BufferDesc.RefreshRate.Numerator = 0;	// Screen refresh rate as RationalNumber. Zeroing it out makes DXGI calculate it.
-	scDesc.BufferDesc.RefreshRate.Denominator = 0;	// Screen refresh rate as RationalNumber. Zeroing it out makes DXGI calculate it.
-	scDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;						// The most common format. Variations include [...]UNORM_SRGB.
-	scDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;	// The order pixel rows are drawn to the back buffer doesn't matter.
-	scDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;					// Since the back buffer and window sizes matches, scaling doesn't matter.
-	scDesc.SampleDesc.Count = 1;												// Disable multisampling.
-	scDesc.SampleDesc.Quality = 0;												// Disable multisampling.
-	scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;						// The back buffer will be rendered to.
-	scDesc.BufferCount = 1;							// We only have one back buffer.
-	scDesc.OutputWindow = gWindowHandle;			// Must point to the handle for the window used for rendering.
-	scDesc.Windowed = true;							// Run in windowed mode. Fullscreen is covered in a later sample.
-	scDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;	// This makes the display driver select the most efficient technique.
-	scDesc.Flags = 0;								// No additional options.
+	scDesc.BufferDesc.Width = gWindowWidth;
+	scDesc.BufferDesc.Height = gWindowHeight;
+	scDesc.BufferDesc.RefreshRate.Numerator = 0;
+	scDesc.BufferDesc.RefreshRate.Denominator = 0;
+	scDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	scDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+	scDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
+	scDesc.SampleDesc.Count = 1;
+	scDesc.SampleDesc.Quality = 0;
+	scDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	scDesc.BufferCount = 1;
+	scDesc.OutputWindow = gWindowHandle;
+	scDesc.Windowed = true;
+	scDesc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
+	scDesc.Flags = 0;
 
 	D3D11CreateDeviceAndSwapChain(
-		nullptr,					// Use the default adapter.
-		D3D_DRIVER_TYPE_HARDWARE,	// Use the graphics card for rendering. Other options include software emulation.
-		NULL,						// NULL since we don't use software emulation.
-		NULL,						// No creation flags.
-		nullptr,					// Array of feature levels to try using. With null the following are used 11.0, 10.1, 10.0, 9.3, 9.2, 9.1.
-		0,							// The array above has 0 elements.
-		D3D11_SDK_VERSION,			// Always use this.
-		&scDesc,					// Description of the swap chain.
-		&gSwapChain,				// [out] The created swap chain.
-		&gDevice,					// [out] The created device.
-		nullptr,					// [out] The highest supported feature level (from array).
-		&gContext					// [out] The created device context.
+		nullptr,
+		D3D_DRIVER_TYPE_HARDWARE,
+		NULL,
+		NULL,
+		nullptr,
+		0,
+		D3D11_SDK_VERSION,
+		&scDesc,
+		&gSwapChain,
+		&gDevice,
+		nullptr,
+		&gContext
 		);
 }
 
 void CreateRenderTargetView()
 {
-	// Get the back buffer from the swap chain, create a render target view of it to use as the target for rendering.
+	// Get the back buffer from the swap chain, create a render target view of it to use as
+	// the target for rendering.
 	ID3D11Texture2D* backBuffer;
 	gSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
 	gDevice->CreateRenderTargetView(backBuffer, nullptr, &gRTV);
@@ -299,40 +299,51 @@ void CreateShaders()
 		&gPixelShader
 		);
 
-	// Define the input description. Semantic names must correspond to the semantic names used in the vertex shader inputs.
+	// Define the input description. Semantic names must correspond to the semantic names used
+	// in the vertex shader inputs.
 	D3D11_INPUT_ELEMENT_DESC inputDesc[] =
 	{
-		// For each input: Semantic name, semantic index (if multiple with the same name), input format,
-		// input slot (usually 0), byte offset (depends on the previous format size), input slot class (usually 
-		// INPUT_PER_VERTEX_DATA), instance data step rate (always 0 when using INPUT_PER_VERTEX_DATA).
+		// For each input: Semantic name, semantic index (if multiple with the same name), 
+		// input format, input slot (usually 0), byte offset (depends on the previous format
+		// size), input slot class (usually INPUT_PER_VERTEX_DATA), instance data step rate
+		// (always 0 when using INPUT_PER_VERTEX_DATA).
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 
-	// Create the input layout to go with our vertex shader (the layout is validated against the shader's input signature).
+	// Create the input layout to go with our vertex shader (the layout is validated against
+	// the shader's input signature).
 	int inputLayoutSize = sizeof(inputDesc) / sizeof(D3D11_INPUT_ELEMENT_DESC);
-	gDevice->CreateInputLayout(inputDesc, inputLayoutSize, compiledVS->GetBufferPointer(), compiledVS->GetBufferSize(), &gInputLayout);
+	gDevice->CreateInputLayout(
+		inputDesc,
+		inputLayoutSize,
+		compiledVS->GetBufferPointer(),
+		compiledVS->GetBufferSize(),
+		&gInputLayout);
 }
 
 void Render()
 {
-	FLOAT bgColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };		// Back buffer clear colour as an array of floats (rgba).
-	gContext->ClearRenderTargetView(gRTV, bgColor);		// Clear the render target view using the specified colour.
+	// Clear the render target to black (colour (0, 0, 0, 1) ).
+	FLOAT bgColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	gContext->ClearRenderTargetView(gRTV, bgColor);
 
-	// The stride and offset need to be stored in variables as we need to provide pointers to them when setting the vertex buffer.
+	// The stride and offset need to be stored in variables as we need to provide pointers to
+	// them when setting the vertex buffer.
 	UINT vbStride = sizeof(Vertex);
 	UINT vbOffset = 0;
 
-	// Set the input layout, vertex buffer and topology to use when drawing.
+	// Set the input layout, vertex buffer, topology and shaders to use when drawing.
 	gContext->IASetVertexBuffers(0, 1, &gVertexBuffer, &vbStride, &vbOffset);
 	gContext->IASetInputLayout(gInputLayout);
-	gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);	// The vertices should be interpreted as parts of a triangle.
+	gContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	gContext->VSSetShader(gVertexShader, NULL, NULL);
+	gContext->PSSetShader(gPixelShader, NULL, NULL);
 
-	gContext->VSSetShader(gVertexShader, NULL, NULL);	// Set the vertex shader to use. No class instances are used.
-	gContext->PSSetShader(gPixelShader, NULL, NULL);	// Set the pixel shader to use. No class instances are used.
+	// Draw the 6 vertices, three for each triangle.
+	gContext->Draw(6, 0);
 
-	gContext->Draw(6, 0);								// Draw 6 vertices, three for each triangle.
-
-	// When everything has been drawn, present the final result on the screen by swapping the back and front buffers.
+	// When everything has been drawn, present the final result on the screen by swapping the
+	// back and front buffers.
 	gSwapChain->Present(0, 0);
 }
