@@ -256,69 +256,18 @@ void CreateVertexBuffer()
 
 void CreateShaders()
 {
-	// The vertex shader is written in HLSL and defines one struct for input (needs to correspond with the vertex
-	// structure defined above, and with the input layout) and one struct for output (needs to mirror the pixel shader
-	// input struct).
-	// Each value in the input and output structs specify a type, name and semantic. A position vector that is sent to
-	// the pixel shader (i.e. the output position) should specify the semantic SV_POSITION.
-	// The main function simply passes on the input information for each vertex to the output, changing the position 
-	// from a three dimensional vector to a four dimensional with 1.0f for last element.
-	const char* vertexShader = R"(
-		struct VSInput
-		{
-			float3 position : POSITION;
-			float4 colour : COLOR;			
-		};
-
-		struct VSOutput
-		{
-			float4 position : SV_POSITION;
-			float4 colour : COLOR;
-		};
-		
-		VSOutput main(VSInput input)
-		{
-			VSOutput output;
-			
-			output.position = float4(input.position, 1.0f);
-			output.colour = input.colour;			
-
-			return output;
-		}
-		)";
-
-	// The pixel shader defines it input struct (mirror of the vertex shader output struct). If the position
-	// element's semantic is SV_POSITION, we don't need to process it further.
-	// The main function is executed for each pixel covered by a primitive (triangle, in this sample) and returns
-	// the colour the pixel should be painted in - a four dimensional float using the semantic SV_TARGET.
-	// The input's colour is interpolated between the vertices colour giving a nice gradient. This is returned.
-	const char* pixelShader = R"(
-		struct PSInput
-		{
-			float4 position : SV_POSITION;
-			float4 colour : COLOR;
-		};
-		
-		float4 main(PSInput input) : SV_TARGET
-		{
-			return input.colour;
-		}
-		)";
-
-	// Compile and create vertex shader.
+	// Compile and create vertex shader from the file vertexShader.hlsl in the folder Resources/Shaders/.
 	ID3DBlob* compiledVS = nullptr;	// A variable to hold the compiled vertex shader data.
-	D3DCompile(
-		reinterpret_cast<LPCVOID>(vertexShader),
-		strlen(vertexShader),
-		NULL,
-		nullptr,
-		nullptr,
-		"main",
-		"vs_5_0",
-		0,
-		0,
-		&compiledVS,
-		nullptr
+	D3DCompileFromFile(
+		L"../Resources/Shaders/vertexShader.hlsl",		// The path to the shader file relative to the .vxproj folder.
+		nullptr,		// We don't use any defines.
+		nullptr,		// We don't have any includes.
+		"main",			// The name of the entry function. Must match function in source data.
+		"vs_5_0",		// The shader model to use, "vs" specifies it is a vertex shader, 5_0 that it is shader model 5.0.
+		0,				// No shader compile options.
+		0,				// Ignored when compiling a shader (effect compile options).
+		&compiledVS,	// [out] Compiled shader data.
+		nullptr			// [out] Compile time error data.
 		);
 
 	gDevice->CreateVertexShader(
@@ -328,16 +277,15 @@ void CreateShaders()
 		&gVertexShader
 		);
 
-	// Compile and create pixel shader. Works the exact same way as above.
+	// Compile and create pixel shader from the file vertexShader.hlsl in the folder Resources/Shaders/.
+	// Works the same way asbove.
 	ID3DBlob* compiledPS = nullptr;
-	D3DCompile(
-		reinterpret_cast<LPCVOID>(pixelShader),
-		strlen(pixelShader),
-		NULL,
+	D3DCompileFromFile(
+		L"../Resources/Shaders/pixelShader.hlsl",
 		nullptr,
 		nullptr,
 		"main",
-		"ps_5_0",
+		"ps_5_0",		// NOTE: This must be changed to ps_5_0 for pixel shader model 5.0
 		0,
 		0,
 		&compiledPS,
